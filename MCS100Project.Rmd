@@ -1,0 +1,169 @@
+---
+title: "MCS100Project"
+author: "SamSklar"
+date: "5/24/2018"
+output: word_document
+---
+
+
+```{r}
+StartingGoalies <-data.frame(team = character(),goalie = character(),year= integer())
+file_header = "/Users/samsklar/Desktop/mcs100/mcs100_hockey/"
+files_names = list("2012_cleaned.csv", "2013_cleaned.csv", "2014_cleaned.csv", "2015_cleaned.csv", "2016_cleaned.csv", "2017_cleaned.csv", "2018_cleaned.csv")
+
+for (y in (1:length(files_names))){
+  full_file_path = paste(file_header, files_names[y], sep = "")
+  data_curr_year = read.csv(full_file_path, header = TRUE, sep = ",")
+  team_codes = unique(data_curr_year$team)
+
+  for (x in (1:length(team_codes))) {
+    curr_team_data = data_curr_year[data_curr_year$team == team_codes[x],]
+    curr_team_data$goalie
+    starting_goalie = names(sort(summary(as.factor(curr_team_data$goalie)), decreasing=TRUE)[1])
+    curr_list <- list(team=team_codes[x], goalie=starting_goalie, year = 2011 + y)
+    StartingGoalies = rbind(StartingGoalies,curr_list, stringsAsFactors=FALSE)
+  }
+}
+
+```
+
+```{r}
+Back2Backs <-data.frame(team = character(),goalie1 = character(), goalie2 = character(), outcome1 = character(), outcome2 = character(), strategy = character(), totalpoints = integer(), SA1 = integer(), SV1 = integer(), SA2 = integer(), SV2 = integer(), pull1 = logical(), pull2 = logical(), shutout1 = logical(), shutout2 = logical(), year= integer())
+
+
+for (y in (1:length(files_names))){
+  data_curr = read.csv(paste(file_header, files_names[y], sep = ""), header = TRUE, sep = ",")
+  data_curr$date = as.Date(data_curr$date, format = "%m/%d/%y")
+  for (x in (2:nrow(data_curr))){
+    if((data_curr$date[x] - data_curr$date[x-1]) == 1) {
+      points = 0
+      if(data_curr$dec[x] == 'W'){
+        points = points + 2
+      } else if(data_curr$dec[x] == 'O') {
+        points = points + 1
+      }
+      if(data_curr$dec[x-1] == 'W') {
+        points = points + 2
+      } else if(data_curr$dec[x-1] == 'O'){
+        points = points + 1
+      }
+      
+      strategy = ""
+      starter = StartingGoalies[StartingGoalies$year == (2011 + y) & StartingGoalies$team == data_curr$team[x], ]$goalie
+      if(data_curr$goalie[x-1] == starter){
+        strategy = paste(strategy, "S", sep ="")
+      } else {
+        strategy = paste(strategy, "B", sep ="")
+      }
+      
+      if(data_curr$goalie[x] == starter){
+        strategy = paste(strategy, "S", sep ="")
+      } else {
+        strategy = paste(strategy, "B", sep ="")
+      }
+      
+      curr_list <- list(team=data_curr$team[x], goalie1=data_curr$goalie[x-1], goalie2 = data_curr$goalie[x], outcome1 = data_curr$dec[x-1], outcome2 = data_curr$dec[x], strategy = strategy, totalpoints = points, SA1 = data_curr$SA[x-1], SV1 = data_curr$SV[x-1],  SA2 = data_curr$SA[x], SV2 = data_curr$SV[x], pull1 = (data_curr$dec[x-1] == ""), pull2 = (data_curr$dec[x] == ""), shutout1 = (data_curr$SA[x-1] == data_curr$SV[x-1]), shutout2 = (data_curr$SA[x] == data_curr$SV[x]), year = 2011 + y)
+      Back2Backs = rbind(Back2Backs,curr_list, stringsAsFactors=FALSE)
+    }
+  }
+}
+
+```
+
+```{r}
+mean(Back2Backs$totalpoints[Back2Backs$strategy == "SS"])
+mean(Back2Backs$totalpoints[Back2Backs$strategy == "SB"])
+mean(Back2Backs$totalpoints[Back2Backs$strategy == "BS"])
+mean(Back2Backs$totalpoints[Back2Backs$strategy == "BB"])
+
+#Starter Starter
+ssg1 = sum(Back2Backs$SV1[Back2Backs$strategy == "SS"]) / sum(Back2Backs$SA1[Back2Backs$strategy == "SS"])
+ssg2 = sum(Back2Backs$SV2[Back2Backs$strategy == "SS"]) / sum(Back2Backs$SA2[Back2Backs$strategy == "SS"])
+print("ss")
+ssg1
+ssg2
+
+#Starter BackUp
+sbg1 = sum(Back2Backs$SV1[Back2Backs$strategy == "SB"]) / sum(Back2Backs$SA1[Back2Backs$strategy == "SB"])
+sbg2 = sum(Back2Backs$SV2[Back2Backs$strategy == "SB"]) / sum(Back2Backs$SA2[Back2Backs$strategy == "SB"])
+print("sb")
+sbg1
+sbg2
+
+#BackUp Starter
+bsg1 = sum(Back2Backs$SV1[Back2Backs$strategy == "BS"]) / sum(Back2Backs$SA1[Back2Backs$strategy == "BS"])
+bsg2 = sum(Back2Backs$SV2[Back2Backs$strategy == "BS"]) / sum(Back2Backs$SA2[Back2Backs$strategy == "BS"])
+print("bs")
+bsg1
+bsg2
+
+#BackUp BackUp
+bbg1 = sum(Back2Backs$SV1[Back2Backs$strategy == "BB"]) / sum(Back2Backs$SA1[Back2Backs$strategy == "BB"])
+bbg2 = sum(Back2Backs$SV2[Back2Backs$strategy == "BB"]) / sum(Back2Backs$SA2[Back2Backs$strategy == "BB"])
+print("bb")
+bbg1
+bbg2
+
+```
+
+```{r}
+Back2Backs$savepercentage1 = Back2Backs$SV1 / Back2Backs$SA1
+Back2Backs$savepercentage2 = Back2Backs$SV2 / Back2Backs$SA2
+
+print("SS")
+mean(Back2Backs$savepercentage1[Back2Backs$strategy == "SS"])
+mean(Back2Backs$savepercentage2[Back2Backs$strategy == "SS"])
+
+print("BS")
+mean(Back2Backs$savepercentage1[Back2Backs$strategy == "BS"])
+mean(Back2Backs$savepercentage2[Back2Backs$strategy == "BS"])
+
+print("SB")
+mean(Back2Backs$savepercentage1[Back2Backs$strategy == "SB"])
+mean(Back2Backs$savepercentage2[Back2Backs$strategy == "SB"])
+
+print("BB")
+mean(Back2Backs$savepercentage1[Back2Backs$strategy == "BB"])
+mean(Back2Backs$savepercentage2[Back2Backs$strategy == "BB"])
+```
+
+```{r}
+ppg = read.csv("/Users/samsklar/Desktop/mcs100/mcs100_hockey/ppg.csv", header = TRUE, sep = ",")
+Back2Backs$pointdelta = 0
+for (x in (1:nrow(Back2Backs))){
+  Back2Backs[x,]$pointdelta = (Back2Backs[x,]$totalpoints / 2) - ppg$PPG[ppg$team == Back2Backs$team[x] & ppg$season == Back2Backs$year[x]]
+}
+```
+
+```{r}
+Back2Backs$strategy = as.factor(Back2Backs$strategy)
+fit.lm = lm(pointdelta ~ strategy, data = Back2Backs)
+plot(Back2Backs$strategy, Back2Backs$pointdelta, ylab = "Point Differential", xlab = "Strategy")
+```
+
+```{r}
+print("Pulls in game 2")
+sum(Back2Backs$pull2[Back2Backs$strategy == "SS"]) / nrow(Back2Backs[Back2Backs$strategy == "SS",])
+sum(Back2Backs$pull2[Back2Backs$strategy == "BS"]) / nrow(Back2Backs[Back2Backs$strategy == "BS",])
+sum(Back2Backs$pull2[Back2Backs$strategy == "SB"]) / nrow(Back2Backs[Back2Backs$strategy == "SB",])
+sum(Back2Backs$pull2[Back2Backs$strategy == "BB"]) / nrow(Back2Backs[Back2Backs$strategy == "BB",])
+
+print("Shutouts in Game 2")
+sum(Back2Backs$shutout2[Back2Backs$strategy == "SS"]) / nrow(Back2Backs[Back2Backs$strategy == "SS",])
+sum(Back2Backs$shutout2[Back2Backs$strategy == "BS"]) / nrow(Back2Backs[Back2Backs$strategy == "BS",])
+sum(Back2Backs$shutout2[Back2Backs$strategy == "SB"]) / nrow(Back2Backs[Back2Backs$strategy == "SB",])
+sum(Back2Backs$shutout2[Back2Backs$strategy == "BB"]) / nrow(Back2Backs[Back2Backs$strategy == "BB",])
+```
+
+```{r}
+sum(Back2Backs$shutout1[Back2Backs$strategy == "SS"]) / nrow(Back2Backs[Back2Backs$strategy == "SS",])
+sum(Back2Backs$shutout1[Back2Backs$strategy == "BS"]) / nrow(Back2Backs[Back2Backs$strategy == "BS",])
+sum(Back2Backs$shutout1[Back2Backs$strategy == "SB"]) / nrow(Back2Backs[Back2Backs$strategy == "SB",])
+sum(Back2Backs$shutout1[Back2Backs$strategy == "BB"]) / nrow(Back2Backs[Back2Backs$strategy == "BB",])
+```
+
+```{r}
+t.test(Back2Backs$totalpoints[Back2Backs$strategy == "SB"], Back2Backs$totalpoints[Back2Backs$strategy == "BS"])
+
+t.test(Back2Backs$pointdelta[Back2Backs$strategy == "SB"], Back2Backs$pointdelta[Back2Backs$strategy == "BS"])
+```
